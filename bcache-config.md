@@ -1,21 +1,12 @@
 #bcache Notes
-
-官方主页：
-http://bcache.evilpiepirate.org/
-
-用户手册：
-http://evilpiepirate.org/git/linux-bcache.git/tree/Documentation/bcache.txt
+官方文档：
 
 ##1. 配置bcache
-
 ###系统环境要求
-
 bcache是在3.10以后的版本加入mainline的，因此需要3.10以上的内核版本，但是在3.10.0的内核上进行配置时，发现无法生成相应的配置文件节点，测试过程中使用4.30。
 
 ###安装bcache-tools
-
 ####代码安装：
-
 配置bcache需要使用bcache-tools工具，代码可以从github或官方网站上获取，但是master的代码版本非常老，dev branch的代码比较新但却是面向Ubuntu开发的，很多依赖库也是面向Ubuntu开发的，在Centos上编译非常麻烦。
 ```
 git clone https://github.com/g2p/bcache-tools.git
@@ -59,41 +50,15 @@ ln -sv lib/libuuid.so.1 bin/libuuid.so
 yum install glibc-static
 ```
 
-
-##1.3 配置方法
-
+1.3 配置方法
 以下配置方法介绍中sdc表示cache device，也就是SSD的盘符，使用sdb表示backing device，也就是HDD的盘符。
 
-为了方便查阅，在这里先把配置的基本流程列一下，bcache创建过程
-
-```
-# wipefs -a /dev/sdb
-# wipefs -a /dev/sdc
-# make-bcache -B /dev/sdb -C /dev/sdc -w4k -b1M --writeback
-# echo /dev/sdb > /sys/fs/bcache/register
-# echo /dev/sdc > /sys/fs/bcache/register
-
-# ls /sys/fs/bcache/
-60fbcc3b-4f8e-485b-9f3c-c258c157d614  register  register_quiet
-## UUID=60fbcc3b-4f8e-485b-9f3c-c258c157d614
-# echo <UUID> > /sys/block/<sdb>/bcache/attach
-
-# mkfs.ext4 /dev/bcache0
-# mount /dev/bcache0 /mnt
-```
-
-###1.3.1 格式化硬盘分区
-
+1.3.1 格式化硬盘分区
 应用硬盘到bcache模式之前需要将目标分区格式化，这一步会破坏磁盘分区中所有数据。
 ```
-# make-bcache -B /dev/sdb -w4k
-# make-bcache -C /dev/sdc -w4k -b1M --writeback
+#make-bcache -B /dev/sdb
+#make-bcache -C /dev/sdc -w4k -b1M --writeback
 ```
-
-或者一次性完成两者的配置：
-
-
-
 参数意义：
 ```
 -B: 设置backing device
@@ -105,22 +70,22 @@ yum install glibc-static
 问题原因: a.目标分区需要在使用前卸载并擦除文件系统；b.目标分区已经被其他bcache占用。
 对于第一种情况，先擦除目标分区的文件系统，再进行链接。
 ```
-# wipefs -a /dev/sd*
+#wipefs -a /dev/sd*
 ```
 对于第二种情况，先注销原有的bcache解除占用再进行格式化，如果注销后仍然提示错误，可以通过--wipe-bcache参数强行格式化。
 ```
-# make-bcache -C /dev/sdc --writeback --wipe-bcache
+#make-bcache -C /dev/sdc --writeback --wipe-bcache
 ```
 
-###1.3.2 设备注册
+1.3.2 设备注册
 格式化完成后需要完成设备的注册，使内核获取设备：
 ```
 # echo /dev/sdb > /sys/fs/bcache/register
-# echo /dev/sdc > /sys/fs/bcache/register
+#echo /dev/sdc > /sys/fs/bcache/register
 ```
 也可以通过下面的方式实现设备自动注册：
 ```
-# echo /dev/sd* > /sys/fs/bcache/register_quiet
+echo /dev/sd* > /sys/fs/bcache/register_quiet
 ```
 可能由于内核版本的问题，在实际配置中发现，以上注册命令无需执行就可以完成注册，甚至会报错，无法向register节点写入信息，但是并不影响是使用。
 完成注册以后会产生相应的系统节点：
@@ -129,65 +94,53 @@ yum install glibc-static
 /sys/block/bcache0/
 /sys/fs/bcache/
 
-###1.3.3 设备绑定
+1.3.3 设备绑定
 完成注册的backing device需要在使用之前绑定到bchache<N>，否则功能无法启用。首先找到完成注册的backing device设备的<UUID>
 ```
-# ls /sys/fs/bcache/
+#ls /sys/fs/bcache/
 60fbcc3b-4f8e-485b-9f3c-c258c157d614  register  register_quiet
 ```
-
 那么<UUID>=60fbcc3b-4f8e-485b-9f3c-c258c157d614。
-
 ```
-# echo <UUID> > /sys/block/<sdb>/bcache/attach
+#echo <UUID> > /sys/block/<sdb>/bcache/attach
 ```
-
 重新启动系统，完成配置。
-
 实际配置后的磁盘情况，其中使用sdr作为backing device，sds是SSD硬盘，单独建立一个16G分区作为cache。
 ```
-sdn               8:208  0 558.9G  0 disk  
-├─sdn1            8:209  0   128G  0 part  
-│ └─bcache0     252:0    0   128G  0 disk  
-└─sdn2            8:210  0 430.9G  0 part  
-sdo               8:224  0 745.2G  0 disk  
-├─sdo1            8:225  0    64G  0 part  
-│ └─bcache0     252:0    0   128G  0 disk  
-├─sdo2            8:226  0   128G  0 part  
-└─sdo3            8:227  0 553.2G  0 part
-
+#lsblk -o NAME,MAJ:MIN,RM,SIZE,TYPE,FSTYPE,MOUNTPOINT,UUID,PARTUUID
+NAME            MAJ:MIN RM   SIZE TYPE FSTYPE            MOUNTPOINT UUID                                   PARTUUID
+sdq        65:0    0 433.5G disk
+sdr        65:16   0 558.9G disk bcache               0bb0de96-f7df-4fed-9280-b6e0615718da
+└─bcache0 251:0    0 558.9G disk
+sds        65:32   0 745.2G disk
+└─sds1     65:33   0    16G part bcache               00a196c4-2af9-41b5-a450-e130ab1389e4
+sdt        65:48   0 745.2G disk LVM2_memb            KnqL6f-Wa14-0kfr-G2pN-1bqL-pjut-cAOPSn
+sdu        65:64   0 558.9G disk LVM2_memb            Z5vnpa-zXcq-2Ln9-Ll3g-QCB4-DTUc-q3AKio
+└─vg2-test0
+```
 
 [root@localhost ~]# ls /sys/block/sdq/bcache/dev/slaves/
 sdq  sdr1
 
 [root@localhost bcache]# cat cache/cache0/set/block_size
 512
-```
 
-###1.3.4 设置文件系统和挂载
-
+1.3.4 设置文件系统和挂载
 /dev/bcache<N>可以当做普通盘符直接格式化所需的文件系统挂载：
 ```
 #mkfs.ext4 /dev/bcache0
 #mount /dev/bcache0 /mnt
 ```
-
-###1.3.5 停用设备
-
+1.3.5 停用设备
 注销设备：
-
 ```
-# echo 1 >/sys/fs/bcache/<UUID>/unregister
+echo 1 >/sys/fs/bcache/<UUID>/unregister
 ```
-
 停用bcache：
-
 ```
-# echo 1 >/sys/block/bcache0/bcache/stop
+echo 1 >/sys/block/bcache0/bcache/stop
 ```
-
 擦除磁盘残留数据：
-
 ```
 sudo wipefs -a /dev/sdc
 sudo wipefs -a /dev/sdb
@@ -256,11 +209,8 @@ dev.cache.replacement 0 [lru]
 
 cset.uuid 60fbcc3b-4f8e-485b-9f3c-c258c157d614
 ```
-
 1.3.7 配置运行问题
-
 根据用户手册中的介绍，bcache配置完成以后，通过下面的命令可以强制启动bcache，但在实际操作时会造成系统当机。
-
 ```
 echo 1 > /sys/block/sdb/bcache/running
 ```

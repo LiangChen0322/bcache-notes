@@ -11,6 +11,7 @@
 ```
 
 这个错误可以忽略，可能是由于bcache-tools或者内核版本的问题，分区格式化为bcache分区以后会自动进行注册，并且设备重启以后会自动注册，但是不保证其他内核内核或bcache-tools版本必须执行次步骤。通过dmesg查看内核信息会发现bcache打印出设备已经注册的信息，说明设备已经注册完成，因此执行上面的命令会提示错误。
+
 ```
 [ 2949.084297] bcache: register_cache() registered cache device sdo2
 ... ...
@@ -40,6 +41,7 @@ sdo               8:224  0 745.2G  0 disk
 ```
 
 通过dmesg检查bcache的信息：
+
 
 ```
 [  394.693476] bcache: bch_cached_dev_attach() Couldn't attach sdn1: block size less than set's block size

@@ -2,7 +2,9 @@
 
 device="/dev/bcache0"
 dp="/sys/block/bcache0"
-runt=600
+bdev="sdn1"
+cdev="sdo1"
+runt=900
 npre="bc_"
 
 function reattach() {
@@ -15,12 +17,17 @@ function reattach() {
 		sleep 1
 	done
 	printf "\n"
+	printf "stop caching device... ...\r"
 	sleep 3
 	echo 1 > /sys/fs/bcache/8b3c0faa-3b63-48bb-9786-1676197cf325/stop
+	printf "\t\t\t\t\t\r"
+	printf "clean caching device... ...\r"
 	sleep 2
-	wipefs -a /dev/sdo1
+	wipefs -a /dev/$cdev
+	printf "\t\t\t\t\t\r"
+	echo "Re-attach caching device... ...\r"
 	sleep 2
-	echo 8b3c0faa-3b63-48bb-9786-1676197cf325 > /sys/block/sdn/sdn2/bcache/attach
+	echo 8b3c0faa-3b63-48bb-9786-1676197cf325 > /sys/block/sdn/$bdev/bcache/attach
 	sleep 2
 }
 
@@ -43,7 +50,7 @@ function fio_test_2() {
 	printf "\n"
 }
 
-function fio_test_2() {
+function fio_test_3() {
 	fio --rw=$2 --bs=$3 --filename=$device \
 		--numjobs=$4 --iodepth=$5 --runtime=$runt \
 		--group_reporting --direct=1 --ioengine=libaio \
@@ -56,27 +63,30 @@ function monitor() {
 	bcache_status $1 $2 $3
 }
 
-# 10 20 
-for wb_delay in 30; do
-	mkdir "de"$wb_delay"_read70"
-	cd "de"$wb_delay"_read70"
 
-	echo $wb_delay > /sys/block/bcache0/bcache/writeback_delay
+if (( $1 == "1" )); then
+	for wb_delay in 10 20 30; do
+		mkdir "de"$wb_delay"_read70"
+		cd "de"$wb_delay"_read70"
 
-	for mod in rw randrw; do
-		for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
-			title=$npre$mod"_"$bs
-			echo "bcache test with $mod $bs:"
+		echo $wb_delay > /sys/block/bcache0/bcache/writeback_delay
 
-			reattach;
-			nj=4
-			iod=8
-			monitor bcache0 $title $runt &
-			fio_test $title $mod $bs $nj $iod
+		for mod in rw randrw; do
+			#for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
+				for bs in 8K 16K; do
+				title=$npre$mod"_"$bs
+				echo "bcache test with $mod $bs:"
+
+				reattach;
+				nj=4
+				iod=8
+				monitor bcache0 $title $runt &
+				fio_test $title $mod $bs $nj $iod
+			done
 		done
+		cd ../
 	done
-	cd ../
-done
+fi
 
 for wb_delay in 10 20 30; do
 	mkdir "de"$wb_delay"_read50"
@@ -85,7 +95,8 @@ for wb_delay in 10 20 30; do
 	echo $wb_delay > /sys/block/bcache0/bcache/writeback_delay
 
 	for mod in rw randrw; do
-		for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
+		#for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
+		for bs in 4K 16K 32K 128K 1M; do
 			title=$npre$mod"_"$bs
 			echo "bcache test with $mod $bs:"
 
@@ -106,7 +117,8 @@ for wb_delay in 10 20 30; do
 	echo $wb_delay > /sys/block/bcache0/bcache/writeback_delay
 
 	for mod in rw randrw; do
-		for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
+		#for bs in 4K 8K 16K 32K 64K 128K 256K 512K 1M; do
+		for bs in 4K 16K 32K 128K 1M; do
 			title=$npre$mod"_"$bs
 			echo "bcache test with $mod $bs:"
 
