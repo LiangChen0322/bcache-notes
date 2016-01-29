@@ -1,3 +1,5 @@
+http://8278399.blog.51cto.com/8268399/1564451
+http://www.sysnote.org/?p=152
 
 http://os.51cto.com/art/201205/334274.htm
 

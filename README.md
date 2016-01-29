@@ -264,3 +264,18 @@ cset.uuid 60fbcc3b-4f8e-485b-9f3c-c258c157d614
 ```
 echo 1 > /sys/block/sdb/bcache/running
 ```
+
+##2 参数配置
+
+###替换策略
+
+目前bcache支持三种淘汰策略：
+LRU FIFO RANDOM
+
+三种淘汰策略可以在运行时进行替换，查看与替换方式如下：
+
+```
+# cat /sys/block/bcache0/cache/cache0/cache_replacement_policy
+[lru] fifo random
+# echo fifo > /sys/block/bcache0/cache/cache0/cache_replacement_policy
+```
