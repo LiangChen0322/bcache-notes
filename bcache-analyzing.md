@@ -35,11 +35,11 @@ http://lxr.free-electrons.com/source/drivers/md/bcache/btree.h#L116
 ```
 struct btree
     └┬─>struct btree_keys keys;
-     |   ├─>struct bset_tree set[MAX_BSETS];
-     |   │    ├──>struct bkey end;
-     |   │    └──>struct bset *data;
-     |   │         └─>struct bkey start[0];
-     |   └─>struct btree_keys_ops *ops;
+     │   ├─>struct bset_tree set[MAX_BSETS];
+     │   │    ├──>struct bkey end;
+     │   │    └──>struct bset *data;
+     │   │         └─>struct bkey start[0];
+     │   └─>struct btree_keys_ops *ops;
      └─>struct hlist_node hash;
 ```
 
